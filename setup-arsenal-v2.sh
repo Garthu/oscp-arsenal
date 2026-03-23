@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ===========================
-# OSCP Arsenal Setup Script v2
+# OSCP Arsenal Setup Script v2.1 (Fixed)
 # ===========================
 
 set -e
@@ -41,7 +41,26 @@ download "https://github.com/peass-ng/PEASS-ng/releases/latest/download/winPEASx
 download "https://github.com/peass-ng/PEASS-ng/releases/latest/download/winPEASx86.exe" "windows/privesc/winPEASx86.exe"
 download "https://github.com/peass-ng/PEASS-ng/releases/latest/download/winPEAS.bat" "windows/privesc/winPEAS.bat"
 download "https://raw.githubusercontent.com/PowerShellMafia/PowerSploit/master/Privesc/PowerUp.ps1" "windows/privesc/PowerUp.ps1"
-download "https://raw.githubusercontent.com/itm4n/PrivescCheck/master/PrivescCheck.ps1" "windows/privesc/PrivescCheck.ps1"
+
+# FIX: PrivescCheck agora usa releases em vez de arquivo raw no master
+# O repo mudou a estrutura - baixar via releases ou do branch correto
+log_info "Baixando PrivescCheck..."
+if curl -fSL -o windows/privesc/privesccheck.zip "https://github.com/itm4n/PrivescCheck/releases/latest/download/PrivescCheck.zip" 2>/dev/null; then
+    unzip -oq windows/privesc/privesccheck.zip -d windows/privesc/PrivescCheck/ 2>/dev/null
+    rm -f windows/privesc/privesccheck.zip
+    log_ok "PrivescCheck (via release)"
+else
+    # Fallback: tentar baixar o .ps1 diretamente do branch master (pode nao existir como arquivo unico)
+    if curl -fSL -o windows/privesc/privesccheck_repo.zip "https://github.com/itm4n/PrivescCheck/archive/refs/heads/master.zip" 2>/dev/null; then
+        unzip -oq windows/privesc/privesccheck_repo.zip -d windows/privesc/
+        mv windows/privesc/PrivescCheck-master windows/privesc/PrivescCheck 2>/dev/null
+        rm -f windows/privesc/privesccheck_repo.zip
+        log_ok "PrivescCheck (via repo clone)"
+    else
+        log_fail "PrivescCheck"
+    fi
+fi
+
 download "https://github.com/r3motecontrol/Ghostpack-CompiledBinaries/raw/master/Seatbelt.exe" "windows/privesc/Seatbelt.exe"
 download "https://github.com/r3motecontrol/Ghostpack-CompiledBinaries/raw/master/SharpUp.exe" "windows/privesc/SharpUp.exe"
 download "https://github.com/itm4n/PrintSpoofer/releases/latest/download/PrintSpoofer64.exe" "windows/privesc/PrintSpoofer64.exe"
@@ -58,8 +77,24 @@ else
     log_fail "JuicyPotatoNG"
 fi
 
-# SweetPotato (alternativa)
-download "https://github.com/CCob/SweetPotato/releases/latest/download/SweetPotato.exe" "windows/privesc/SweetPotato.exe"
+# FIX: SweetPotato nao tem releases binarias no repo oficial CCob/SweetPotato
+# Baixar binario pre-compilado de repo alternativo ou clonar o source
+log_info "Baixando SweetPotato..."
+if curl -fSL -o windows/privesc/SweetPotato.zip "https://github.com/uknowsec/SweetPotato/releases/latest/download/SweetPotato.zip" 2>/dev/null; then
+    unzip -oq windows/privesc/SweetPotato.zip -d windows/privesc/
+    rm -f windows/privesc/SweetPotato.zip
+    log_ok "SweetPotato (via uknowsec)"
+else
+    # Fallback: clonar source do repo original
+    if curl -fSL -o windows/privesc/SweetPotato_src.zip "https://github.com/CCob/SweetPotato/archive/refs/heads/master.zip" 2>/dev/null; then
+        unzip -oq windows/privesc/SweetPotato_src.zip -d windows/privesc/
+        mv windows/privesc/SweetPotato-master windows/privesc/SweetPotato_src 2>/dev/null
+        rm -f windows/privesc/SweetPotato_src.zip
+        log_ok "SweetPotato (source - precisa compilar)"
+    else
+        log_fail "SweetPotato"
+    fi
+fi
 
 # ===========================
 # WINDOWS - ENUM
@@ -84,11 +119,26 @@ else
     log_fail "Mimikatz"
 fi
 
-# SharpHound
-download "https://github.com/BloodHoundAD/SharpHound/releases/latest/download/SharpHound-v2.5.9.zip" "windows/enum/SharpHound.zip"
-if [ -f windows/enum/SharpHound.zip ]; then
-    unzip -oq windows/enum/SharpHound.zip -d windows/enum/
-    rm -f windows/enum/SharpHound.zip
+# FIX: SharpHound mudou para SpecterOps/SharpHound - usar latest release em vez de versao hardcoded
+log_info "Baixando SharpHound..."
+SHARPHOUND_URL=$(curl -fsSL "https://api.github.com/repos/SpecterOps/SharpHound/releases/latest" 2>/dev/null | grep -oP '"browser_download_url": "\K[^"]+\.zip' | head -1)
+if [ -n "$SHARPHOUND_URL" ]; then
+    if curl -fSL -o windows/enum/SharpHound.zip "$SHARPHOUND_URL" 2>/dev/null; then
+        unzip -oq windows/enum/SharpHound.zip -d windows/enum/SharpHound/
+        rm -f windows/enum/SharpHound.zip
+        log_ok "SharpHound (latest via SpecterOps)"
+    else
+        log_fail "SharpHound"
+    fi
+else
+    # Fallback: tentar URL direta com versao conhecida
+    if curl -fSL -o windows/enum/SharpHound.zip "https://github.com/SpecterOps/SharpHound/releases/download/v2.10.0/SharpHound-v2.10.0.zip" 2>/dev/null; then
+        unzip -oq windows/enum/SharpHound.zip -d windows/enum/SharpHound/
+        rm -f windows/enum/SharpHound.zip
+        log_ok "SharpHound v2.10.0"
+    else
+        log_fail "SharpHound"
+    fi
 fi
 
 # ===========================
@@ -152,7 +202,9 @@ chmod +x linux/privesc/* 2>/dev/null
 # ===========================
 log_info "Baixando Linux Enum tools..."
 
-download "https://raw.githubusercontent.com/pentestmonkey/unix-privesc-check/master/unix-privesc-check" "linux/enum/unix-privesc-check"
+# FIX: unix-privesc-check - o arquivo esta no branch 1_x, nao no master
+# O master tem upc.sh (versao modular), o 1_x tem o script unico classico
+download "https://raw.githubusercontent.com/pentestmonkey/unix-privesc-check/1_x/unix-privesc-check" "linux/enum/unix-privesc-check"
 chmod +x linux/enum/* 2>/dev/null
 
 # ===========================
