@@ -671,6 +671,39 @@ YOUREOF
 log_ok "Cheatsheet criado"
 
 # ===========================
+# ADICIONAR BINARIOS AO PATH
+# ===========================
+log_info "Adicionando binários ao PATH..."
+
+BIN_DIR="$HOME/.local/bin"
+mkdir -p "$BIN_DIR"
+
+# Kerbrute
+ln -sf "$ARSENAL_DIR/ad/exploit/kerbrute_linux" "$BIN_DIR/kerbrute"
+
+# Chisel
+ln -sf "$ARSENAL_DIR/pivoting/chisel_linux64" "$BIN_DIR/chisel"
+
+# Ligolo
+ln -sf "$ARSENAL_DIR/pivoting/ligolo_proxy" "$BIN_DIR/ligolo-proxy"
+ln -sf "$ARSENAL_DIR/pivoting/ligolo_agent_linux" "$BIN_DIR/ligolo-agent"
+
+# pspy
+ln -sf "$ARSENAL_DIR/linux/privesc/pspy64" "$BIN_DIR/pspy"
+
+# Socat static
+ln -sf "$ARSENAL_DIR/pivoting/socat_linux" "$BIN_DIR/socat-static"
+
+# Garantir que ~/.local/bin esta no PATH
+if ! echo "$PATH" | grep -q "$BIN_DIR"; then
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.zshrc" 2>/dev/null
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc" 2>/dev/null
+    log_info "PATH atualizado em .zshrc e .bashrc (reabra o terminal ou rode: source ~/.zshrc)"
+fi
+
+log_ok "Symlinks criados em $BIN_DIR"
+
+# ===========================
 # FINALIZAR
 # ===========================
 echo ""
