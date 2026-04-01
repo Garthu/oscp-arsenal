@@ -485,6 +485,23 @@ else
     log_fail "Snaffler"
 fi
 
+# Kerbrute (copia para enum tambem, util para user enumeration)
+download "https://github.com/ropnop/kerbrute/releases/latest/download/kerbrute_linux_amd64" "ad/enum/kerbrute_linux"
+download "https://github.com/ropnop/kerbrute/releases/latest/download/kerbrute_windows_amd64.exe" "ad/enum/kerbrute.exe"
+chmod +x ad/enum/kerbrute_linux 2>/dev/null
+
+# Username-Anarchy (gerador de usernames para AD)
+log_info "Baixando Username-Anarchy..."
+if curl -fSL -o ad/enum/username-anarchy.zip "https://github.com/urbanadventurer/username-anarchy/archive/refs/heads/master.zip" 2>/dev/null; then
+    unzip -oq ad/enum/username-anarchy.zip -d ad/enum/
+    mv ad/enum/username-anarchy-master ad/enum/username-anarchy 2>/dev/null
+    rm -f ad/enum/username-anarchy.zip
+    chmod +x ad/enum/username-anarchy/username-anarchy 2>/dev/null
+    log_ok "Username-Anarchy"
+else
+    log_fail "Username-Anarchy"
+fi
+
 # ===========================
 # AD - EXPLOIT
 # ===========================
