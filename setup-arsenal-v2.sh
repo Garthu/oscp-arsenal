@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ===========================
-# OSCP Arsenal Setup Script v2.3
+# OSCP Arsenal Setup Script v2.4
 # ===========================
 
 # REMOVIDO set -e - comandos individuais podem falhar sem matar o script
@@ -259,21 +259,36 @@ download "https://github.com/nicocha30/ligolo-ng/releases/download/v${LIGOLO_VER
 if [ -f pivoting/ligolo_proxy.tar.gz ]; then
     tar -xzf pivoting/ligolo_proxy.tar.gz -C pivoting/ 2>/dev/null || true
     rm -f pivoting/ligolo_proxy.tar.gz
-    chmod +x pivoting/ligolo-ng_proxy* 2>/dev/null || true
-    mv pivoting/ligolo-ng_proxy* pivoting/ligolo_proxy 2>/dev/null || true
+    # v0.7+ extrai como "proxy", versoes antigas como "ligolo-ng_proxy*"
+    if [ -f pivoting/proxy ]; then
+        mv pivoting/proxy pivoting/ligolo_proxy 2>/dev/null || true
+    elif ls pivoting/ligolo-ng_proxy* &>/dev/null; then
+        mv pivoting/ligolo-ng_proxy* pivoting/ligolo_proxy 2>/dev/null || true
+    fi
+    chmod +x pivoting/ligolo_proxy 2>/dev/null || true
 fi
 
 if [ -f pivoting/ligolo_agent_linux.tar.gz ]; then
     tar -xzf pivoting/ligolo_agent_linux.tar.gz -C pivoting/ 2>/dev/null || true
     rm -f pivoting/ligolo_agent_linux.tar.gz
-    chmod +x pivoting/ligolo-ng_agent* 2>/dev/null || true
-    mv pivoting/ligolo-ng_agent pivoting/ligolo_agent_linux 2>/dev/null || true
+    # v0.7+ extrai como "agent", versoes antigas como "ligolo-ng_agent"
+    if [ -f pivoting/agent ] && [ ! -f pivoting/ligolo_agent_linux ]; then
+        mv pivoting/agent pivoting/ligolo_agent_linux 2>/dev/null || true
+    elif [ -f pivoting/ligolo-ng_agent ]; then
+        mv pivoting/ligolo-ng_agent pivoting/ligolo_agent_linux 2>/dev/null || true
+    fi
+    chmod +x pivoting/ligolo_agent_linux 2>/dev/null || true
 fi
 
 if [ -f pivoting/ligolo_agent_win.zip ]; then
     unzip -oq pivoting/ligolo_agent_win.zip -d pivoting/ 2>/dev/null || true
     rm -f pivoting/ligolo_agent_win.zip
-    mv pivoting/ligolo-ng_agent.exe pivoting/ligolo_agent.exe 2>/dev/null || true
+    # v0.7+ extrai como "agent.exe", versoes antigas como "ligolo-ng_agent.exe"
+    if [ -f pivoting/agent.exe ]; then
+        mv pivoting/agent.exe pivoting/ligolo_agent.exe 2>/dev/null || true
+    elif [ -f pivoting/ligolo-ng_agent.exe ]; then
+        mv pivoting/ligolo-ng_agent.exe pivoting/ligolo_agent.exe 2>/dev/null || true
+    fi
 fi
 
 # Socat static
@@ -493,12 +508,23 @@ download "https://github.com/samratashok/ADModule/raw/master/Microsoft.ActiveDir
 download "https://raw.githubusercontent.com/61106960/adPEAS/main/adPEAS.ps1" "ad/enum/adPEAS.ps1"
 
 # Snaffler
-if curl -fSL -o ad/enum/Snaffler.zip "https://github.com/SnaffCon/Snaffler/releases/latest/download/Snaffler.zip" 2>/dev/null; then
-    unzip -oq ad/enum/Snaffler.zip -d ad/enum/ 2>/dev/null || true
-    rm -f ad/enum/Snaffler.zip
-    log_ok "Snaffler"
+log_info "Baixando Snaffler..."
+SNAFFLER_URL=$(curl -fsSL "https://api.github.com/repos/SnaffCon/Snaffler/releases/latest" 2>/dev/null | grep -oP '"browser_download_url": "\K[^"]+\.zip' | head -1) || true
+if [ -n "$SNAFFLER_URL" ]; then
+    if curl -fSL -o ad/enum/Snaffler.zip "$SNAFFLER_URL" 2>/dev/null; then
+        unzip -oq ad/enum/Snaffler.zip -d ad/enum/Snaffler/ 2>/dev/null || true
+        rm -f ad/enum/Snaffler.zip
+        log_ok "Snaffler (latest)"
+    else
+        log_fail "Snaffler"
+    fi
 else
-    log_fail "Snaffler"
+    # Fallback: tentar a release EXE direta
+    if curl -fSL -o ad/enum/Snaffler.exe "https://github.com/SnaffCon/Snaffler/releases/latest/download/Snaffler.exe" 2>/dev/null; then
+        log_ok "Snaffler (exe)"
+    else
+        log_fail "Snaffler - verifique manualmente https://github.com/SnaffCon/Snaffler/releases"
+    fi
 fi
 
 # Kerbrute (user enumeration via Kerberos)
@@ -551,7 +577,22 @@ log_info "Baixando AD Exploit tools..."
 
 download "https://github.com/r3motecontrol/Ghostpack-CompiledBinaries/raw/master/Rubeus.exe" "ad/exploit/Rubeus.exe"
 download "https://github.com/r3motecontrol/Ghostpack-CompiledBinaries/raw/master/Certify.exe" "ad/exploit/Certify.exe"
-download "https://github.com/r3motecontrol/Ghostpack-CompiledBinaries/raw/master/Whisker.exe" "ad/exploit/Whisker.exe"
+
+# Whisker - Shadow Credentials attack
+log_info "Baixando Whisker..."
+if curl -fSL -o ad/exploit/Whisker.exe "https://github.com/r3motecontrol/Ghostpack-CompiledBinaries/raw/master/Whisker.exe" 2>/dev/null; then
+    log_ok "Whisker.exe (Ghostpack)"
+else
+    # Fallback: baixar source pra compilar
+    if curl -fSL -o ad/exploit/Whisker_src.zip "https://github.com/eladshamir/Whisker/archive/refs/heads/main.zip" 2>/dev/null; then
+        unzip -oq ad/exploit/Whisker_src.zip -d ad/exploit/ 2>/dev/null || true
+        mv ad/exploit/Whisker-main ad/exploit/Whisker_src 2>/dev/null || true
+        rm -f ad/exploit/Whisker_src.zip
+        log_ok "Whisker (source - precisa compilar com Visual Studio)"
+    else
+        log_fail "Whisker"
+    fi
+fi
 download "https://raw.githubusercontent.com/PowerShellMafia/PowerSploit/master/Exfiltration/Invoke-Mimikatz.ps1" "ad/exploit/Invoke-Mimikatz.ps1"
 download "https://github.com/ropnop/kerbrute/releases/latest/download/kerbrute_linux_amd64" "ad/exploit/kerbrute_linux"
 download "https://github.com/ropnop/kerbrute/releases/latest/download/kerbrute_windows_amd64.exe" "ad/exploit/kerbrute.exe"
