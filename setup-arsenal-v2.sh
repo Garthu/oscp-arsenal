@@ -43,21 +43,11 @@ download "https://github.com/peass-ng/PEASS-ng/releases/latest/download/winPEASx
 download "https://github.com/peass-ng/PEASS-ng/releases/latest/download/winPEAS.bat" "windows/privesc/winPEAS.bat"
 download "https://raw.githubusercontent.com/PowerShellMafia/PowerSploit/master/Privesc/PowerUp.ps1" "windows/privesc/PowerUp.ps1"
 
-# PrivescCheck - usa releases em vez de arquivo raw no master
 log_info "Baixando PrivescCheck..."
-if curl -fSL -o windows/privesc/privesccheck.zip "https://github.com/itm4n/PrivescCheck/releases/latest/download/PrivescCheck.zip" 2>/dev/null; then
-    unzip -oq windows/privesc/privesccheck.zip -d windows/privesc/PrivescCheck/ 2>/dev/null || true
-    rm -f windows/privesc/privesccheck.zip
-    log_ok "PrivescCheck (via release)"
+if curl -fSL -o windows/privesc/PrivescCheck.ps1 "https://raw.githubusercontent.com/itm4n/PrivescCheck/master/PrivescCheck.ps1" 2>/dev/null; then
+    log_ok "PrivescCheck"
 else
-    if curl -fSL -o windows/privesc/privesccheck_repo.zip "https://github.com/itm4n/PrivescCheck/archive/refs/heads/master.zip" 2>/dev/null; then
-        unzip -oq windows/privesc/privesccheck_repo.zip -d windows/privesc/ 2>/dev/null || true
-        mv windows/privesc/PrivescCheck-master windows/privesc/PrivescCheck 2>/dev/null || true
-        rm -f windows/privesc/privesccheck_repo.zip
-        log_ok "PrivescCheck (via repo clone)"
-    else
-        log_fail "PrivescCheck"
-    fi
+    log_fail "PrivescCheck"
 fi
 
 download "https://github.com/r3motecontrol/Ghostpack-CompiledBinaries/raw/master/Seatbelt.exe" "windows/privesc/Seatbelt.exe"
